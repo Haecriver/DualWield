@@ -3,11 +3,11 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{6FD54C83-31D8-4465-B8BC-9EA2E6EBC1E6}</ProjectGuid>
+    <ProjectGuid>{AF64D7B0-C653-44B6-BCA2-CBB663C200D6}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>DualWield</RootNamespace>
-    <AssemblyName>DualWield</AssemblyName>
+    <AssemblyName>CECompat</AssemblyName>
     <TargetFramework>net472</TargetFramework>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
@@ -19,7 +19,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>portable</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>..\1.6\Assemblies</OutputPath>
+    <OutputPath>..\..\CECompat\1.6\Assemblies</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -28,17 +28,12 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>none</DebugType>
     <Optimize>true</Optimize>
-    <OutputPath>..\1.6\Assemblies</OutputPath>
+    <OutputPath>..\..\CECompat\1.6\Assemblies</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
-  <ItemGroup>
-    <Compile Remove="CECompat\**" />
-    <EmbeddedResource Remove="CECompat\**" />
-    <None Remove="CECompat\**" />
-  </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Krafs.Rimworld.Ref" Version="1.6.4633" GeneratePathProperty="true" />
     <PackageReference Include="Lib.Harmony" ExcludeAssets="runtime">
@@ -51,5 +46,11 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="CombatExtended">
+      <HintPath>..\..\..\CombatExtended\Assemblies\CombatExtended.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
   </ItemGroup>
 </Project>
