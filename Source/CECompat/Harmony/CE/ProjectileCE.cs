@@ -1,9 +1,9 @@
 ﻿using CombatExtended;
+using DualWield.Harmony;
 using HarmonyLib;
 using System;
 using UnityEngine;
 using Verse;
-using DualWield.Harmony;
 
 namespace DualWield.CECompat.Harmony
 {

@@ -1,8 +1,9 @@
 ﻿using CombatExtended;
+using DualWield.Harmony;
 using HarmonyLib;
 using System.Collections.Generic;
 
-namespace DualWield.Harmony
+namespace DualWield.CECompat.Harmony
 {
     // The same logic is applicable for CE
     [HarmonyPatch(typeof(Verb_MeleeAttackCE), "TryCastShot")]
