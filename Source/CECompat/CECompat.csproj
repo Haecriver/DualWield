@@ -8,7 +8,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>DualWield</RootNamespace>
     <AssemblyName>CECompat</AssemblyName>
-    <TargetFramework>net472</TargetFramework>
+    <TargetFramework>net48</TargetFramework>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
@@ -46,6 +46,9 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\DualWield.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="CombatExtended">

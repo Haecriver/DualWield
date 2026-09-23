@@ -1,12 +1,14 @@
 ﻿using Verse;
 
-namespace DualWield
+namespace DualWield.CECompat
 {
-    public class VGECompat : Mod
+    public class CECompat : Mod
     {
-        public VGECompat(ModContentPack content) : base(content)
+        public CECompat(ModContentPack content) : base(content)
         {
-            Log.Message("CECompat is loaded !");
+            var harmony = new HarmonyLib.Harmony("DualWield.CECompat");
+            harmony.PatchAll();
+            Log.Message("Combat Extended - Dual Wield compatibility patch is loaded ! 🔫🔫");
         }
     }
 }

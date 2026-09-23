@@ -10,9 +10,9 @@ using Verse;
 namespace DualWield.Harmony
 {
     [HarmonyPatch(typeof(Verb_MeleeAttack), "TryCastShot")]
-    class Verb_MeleeAttack_TryCastShot
+    public class Verb_MeleeAttack_TryCastShot
     {
-        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+        public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
         {
             var instructionsList = new List<CodeInstruction>(instructions);
             foreach (CodeInstruction instruction in instructionsList)

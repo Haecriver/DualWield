@@ -9,7 +9,7 @@ using Verse;
 
 namespace DualWield
 {
-    static class Ext_Pawn_EquipmentTracker
+    public static class Ext_Pawn_EquipmentTracker
     {
         //Tag offhand equipment so it can be recognised as offhand equipment during later evaluations. 
         public static void AddOffHandEquipment(this Pawn_EquipmentTracker instance, ThingWithComps newEq)

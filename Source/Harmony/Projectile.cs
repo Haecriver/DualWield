@@ -12,9 +12,9 @@ namespace DualWield.Harmony
 
     [HarmonyPatch(typeof(Projectile), "Launch")]
     [HarmonyPatch(new Type[] { typeof(Thing), typeof(Vector3), typeof(LocalTargetInfo), typeof(LocalTargetInfo), typeof(ProjectileHitFlags), typeof(bool), typeof(Thing), typeof(ThingDef) })]
-    static class Projectile_Launch
+    public static class Projectile_Launch
     {
-        static void Prefix(ref Thing launcher, ref Vector3 origin, Thing equipment)
+        public static void Prefix(ref Thing launcher, ref Vector3 origin, Thing equipment)
         {
             if (!(launcher is Pawn pawn) || !(equipment is ThingWithComps twc))
             {
