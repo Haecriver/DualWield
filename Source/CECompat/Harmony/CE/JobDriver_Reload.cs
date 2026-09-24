@@ -44,7 +44,8 @@ namespace DualWield.CECompat.Harmony
             var initEquipment = AccessTools.Field(typeof(JobDriver_Reload), "initEquipment")
                 .GetValue(__instance) as ThingWithComps;
 
-            __result |=
+            // fail if true
+            __result &=
                 // has offhand
                 (pawn != null
                 && reloadingEquipment.HasValue
@@ -109,15 +110,29 @@ namespace DualWield.CECompat.Harmony
             JobDriver_Reload instance,
             ThingWithComps original)
         {
-            if (original != null)
+            var reloadingEquipment = AccessTools.Field(typeof(JobDriver_Reload), "reloadingEquipment").GetValue(instance) as bool?;
+            var weapon = AccessTools.Property(typeof(JobDriver_Reload), "weapon").GetValue(instance) as ThingWithComps;
+
+            // Return original if
+            // - not reloading equipement
+            // - no Primary fetched
+            // - we're trying to reload main hand
+            if ((reloadingEquipment.HasValue && !reloadingEquipment.Value) || original == null || weapon == original)
             {
                 return original;
-            } 
-            
+            }
+
+            // Try to get OffHandEquipment          
             if (instance.pawn.equipment.TryGetOffHandEquipment(out ThingWithComps offHandEquip))
             {
-                return offHandEquip;
+                // We're trying to reload the offhand weapon
+                if (weapon == offHandEquip)
+                {
+                    return offHandEquip;
+                }
             }
+
+            Log.Warning($"Tried to reload {weapon}, but it was neither in main hand nor in off hand");
             return null;
         }
     }
