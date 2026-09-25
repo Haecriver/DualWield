@@ -7,8 +7,9 @@ using Verse;
 
 namespace DualWield.CECompat.Harmony
 {
+    // The same logic is applicable for CE
     [HarmonyPatch(typeof(ProjectileCE), nameof(ProjectileCE.Launch))]
-    [HarmonyPatch(new Type[] { typeof(Thing), typeof(Vector2), typeof(Thing) })]
+    [HarmonyPatch(new Type[] { typeof(Thing), typeof(Vector2), typeof(Thing) })] // select main function
     static class ProjectileCE_Launch
     {
         static void Prefix(ref Thing launcher, ref Vector2 origin, Thing equipment)

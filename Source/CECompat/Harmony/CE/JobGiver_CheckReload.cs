@@ -4,303 +4,178 @@ using RimWorld;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Reflection.Emit;
 using Verse;
+using static Unity.Burst.Intrinsics.X86.Avx;
 
 namespace DualWield.CECompat.Harmony
 {
     [HarmonyPatch(typeof(JobGiver_CheckReload), "DoReloadCheck")]
     public static class JobGiver_CheckReload_DoReloadCheck
     {
-        public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+        // replace the first checks on tmpComp + the guns.Add(pawn.equipment.Primary);
+        // Start at tmpComp = pawn.equipment?.Primary?.TryGetComp<CompAmmoUser>();
+        // ends after the if (tmpComp != null && tmpComp.HasMagazine) statement
+        // We find both start and end with the call of pawn.equipment.Primary ...
+
+        // If guns is empty the function will naturally return false anyway
+        public static IEnumerable<CodeInstruction> Transpiler(
+            IEnumerable<CodeInstruction> instructions,
+                MethodBase __originalMethod)
         {
-            var codes = instructions.ToList();
-           
-            // --------------------------------------------------------------------
-            // !tmpComp.IsOpportunisticReloadActive
-            // --------------------------------------------------------------------
+            var getEquipment = AccessTools.Field(
+                typeof(Pawn),
+                nameof(Pawn.equipment));
 
-            var opportunisticReloadGetter = AccessTools.PropertyGetter(
-                typeof(CompAmmoUser),
-                nameof(CompAmmoUser.IsOpportunisticReloadActive));
+            var getPrimary = AccessTools.PropertyGetter(
+                typeof(Pawn_EquipmentTracker),
+                nameof(Pawn_EquipmentTracker.Primary));
 
-            var opportunisticReloadReplacement = AccessTools.Method(
-                typeof(JobGiver_CheckReload_DoReloadCheck),
-                nameof(ModifyIsOpportunisticReloadActive),
-                new[]
-                {
-            typeof(bool),
-            typeof(Pawn)
-                });
-
-            // --------------------------------------------------------------------
-            // tmpComp.HasMagazine
-            // --------------------------------------------------------------------
-
-            var hasMagazineGetter = AccessTools.PropertyGetter(
-                typeof(CompAmmoUser),
-                nameof(CompAmmoUser.HasMagazine));
-
-            var hasMagazineReplacement = AccessTools.Method(
-                typeof(JobGiver_CheckReload_DoReloadCheck),
-                nameof(ModifyHasMagazine),
-                new[]
-                {
-            typeof(Pawn)
-                });
-
-            // --------------------------------------------------------------------
-            // guns.Add(pawn.equipment.Primary)
-            // --------------------------------------------------------------------
-
-            var addMethod = AccessTools.Method(
+            var add = AccessTools.Method(
                 typeof(List<ThingWithComps>),
                 nameof(List<ThingWithComps>.Add));
 
-            var addReplacementMethod = AccessTools.Method(
-                typeof(JobGiver_CheckReload_DoReloadCheck),
-                nameof(AddPrimaryAndExtraGun),
-                new[]
+            var listCtor = AccessTools.Constructor(
+                typeof(List<ThingWithComps>),
+                Type.EmptyTypes
+            );     
+
+            // match the guns local
+            var matcherGuns = new CodeMatcher(instructions);
+            matcherGuns
+                .Start()
+                .MatchStartForward(
+                    new CodeMatch(OpCodes.Newobj, listCtor)
+                )
+                .Advance(1);
+            var gunsStore = matcherGuns.Instruction;
+
+            if (!gunsStore.IsStloc())
+            {
+                throw new InvalidOperationException("Cannot find guns local");
+            }
+
+            // Match the code to replace
+            var matcher = new CodeMatcher(instructions);
+
+            matcher
+                .MatchStartForward(
+                    CodeMatch.LoadsField(getEquipment))
+                .ThrowIfInvalid("Reload block start not found");
+
+            // The pawn field is not a simple CodeMatch.IsLdarg(1);
+            // it's a ldfld CombatExtended.<>c__DisplayClass3_0::pawn
+            // so to use it as a matcher, I save it there.
+            var pawnField = (FieldInfo)matcher
+                .InstructionAt(-1)
+                .operand;
+
+            int start = matcher.Pos - 1;
+
+            matcher
+                .MatchEndForward(
+                    CodeMatch.LoadsLocal(), // guns
+                    CodeMatch.LoadsField(pawnField), // pawn
+                    CodeMatch.LoadsField(getEquipment),
+                    CodeMatch.Calls(getPrimary),
+                    CodeMatch.Calls(add))
+                .ThrowIfInvalid("Reload block end not found");
+
+            int end = matcher.Pos;
+
+            var pawnParameter = __originalMethod
+                .GetParameters()
+                .FirstOrDefault(p => p.ParameterType == typeof(Pawn));
+
+            matcher
+                .Start()
+                .Advance(start)
+                .RemoveInstructionsInRange(start, end)
+                .Insert(
+                    // There are two labels to pop before inserting the replacement function
+                    new CodeInstruction(OpCodes.Pop),
+                    new CodeInstruction(OpCodes.Pop),
+                    CodeInstruction.LoadArgument(pawnParameter.Position + 1),
+                    CodeInstruction.LoadLocal(gunsStore.LocalIndex()),
+                    CodeInstruction.Call(
+                        typeof(JobGiver_CheckReload_DoReloadCheck),
+                        nameof(Replacement)));
+
+            return matcher.InstructionEnumeration();
+        }
+
+        public static void Replacement(Pawn pawn, List<ThingWithComps> guns)
+        {
+            ThingWithComps primaryEquip = pawn.equipment?.Primary;
+            CompAmmoUser primaryComp = primaryEquip?.TryGetComp<CompAmmoUser>();
+
+            ThingWithComps offHandEquip = null;
+            CompAmmoUser offHandComp = null;
+
+            // Check if there are two weapons
+            if (!(primaryEquip?.IsOffHand() ?? false) && pawn.equipment.TryGetOffHandEquipment(out offHandEquip))
+            {
+                offHandComp = offHandEquip?.TryGetComp<CompAmmoUser>();
+            }
+
+            if (pawn.Drafted)
+            {
+                // nothing can be done if primary is null
+                if (primaryComp == null)
                 {
-            typeof(List<ThingWithComps>),
-            typeof(ThingWithComps),
-            typeof(Pawn)
-                });
+                    return;
+                }
 
-            // --------------------------------------------------------------------
-            // Verifications
-            // --------------------------------------------------------------------
-
-            if (opportunisticReloadGetter == null)
-                throw new Exception("Could not find CompAmmoUser.IsOpportunisticReloadActive getter.");
-
-            if (opportunisticReloadReplacement == null)
-                throw new Exception("Could not find ModifyIsOpportunisticReloadActive.");
-
-            if (hasMagazineGetter == null)
-                throw new Exception("Could not find CompAmmoUser.HasMagazine getter.");
-
-            if (hasMagazineReplacement == null)
-                throw new Exception("Could not find ModifyHasMagazine.");
-
-            if (addMethod == null)
-                throw new Exception("Could not find List<ThingWithComps>.Add.");
-
-            if (addReplacementMethod == null)
-                throw new Exception("Could not find AddPrimaryAndExtraGun.");
-
-            // --------------------------------------------------------------------
-            // 1. Patch IsOpportunisticReloadActive
-            //
-            // Original IL logic :
-            //
-            //     [tmpComp]
-            //     call get_IsOpportunisticReloadActive
-            //     brtrue / brfalse
-            //
-            // Becomes :
-            //
-            //     [tmpComp]
-            //     call get_IsOpportunisticReloadActive
-            //     ldarg.1               // pawn
-            //     call ModifyIsOpportunisticReloadActive
-            //     brtrue / brfalse
-            //
-            // So helper get :
-            //     originalValue
-            //     pawn
-            // --------------------------------------------------------------------
-
-            int opportunisticIndex = codes.FindIndex(
-                code => code.Calls(opportunisticReloadGetter));
-
-            if (opportunisticIndex < 0)
-                throw new Exception(
-                    "Could not find CompAmmoUser.IsOpportunisticReloadActive in DoReloadCheck.");
-
-            codes.Insert(
-                opportunisticIndex + 1,
-                new CodeInstruction(OpCodes.Ldarg_1));
-
-            codes.Insert(
-                opportunisticIndex + 2,
-                new CodeInstruction(
-                    OpCodes.Call,
-                    opportunisticReloadReplacement));
-
-            // --------------------------------------------------------------------
-            // 2. Patch HasMagazine
-            //
-            // IMPORTANT :
-            // There are several HasMagazine calls
-            // We take the first
-            //
-            // Original :
-            //
-            //     [tmpComp]
-            //     call get_HasMagazine
-            //     brfalse
-            //
-            // Devient :
-            //
-            //     [tmpComp]
-            //     pop
-            //     ldarg.1
-            //     call ModifyHasMagazine
-            //     brfalse
-            //
-            // Then the helper only has Pawn as param
-            // --------------------------------------------------------------------
-
-            int hasMagazineIndex = codes.FindIndex(
-                code => code.Calls(hasMagazineGetter));
-
-            if (hasMagazineIndex < 0)
-                throw new Exception(
-                    "Could not find CompAmmoUser.HasMagazine in DoReloadCheck.");
-
-            // On consomme tmpComp qui était destiné au getter original.
-            var popInstruction = new CodeInstruction(codes[hasMagazineIndex])
-            {
-                opcode = OpCodes.Pop,
-                operand = null
-            };
-
-            codes[hasMagazineIndex] = popInstruction;
-
-            codes.Insert(
-                hasMagazineIndex + 1,
-                new CodeInstruction(OpCodes.Ldarg_1));
-
-            codes.Insert(
-                hasMagazineIndex + 2,
-                new CodeInstruction(
-                    OpCodes.Call,
-                    hasMagazineReplacement));
-
-            // --------------------------------------------------------------------
-            // 3. Patch guns.Add(...)
-            // --------------------------------------------------------------------
-
-            int addIndex = codes.FindIndex(
-                code => code.Calls(addMethod));
-
-            if (addIndex < 0)
-                throw new Exception(
-                    "Could not find List<ThingWithComps>.Add in JobGiver_CheckReload.DoReloadCheck.");
-
-            // Original :
-            //
-            //     [guns, primary]
-            //     call List<ThingWithComps>.Add
-            //
-            // Became :
-            //
-            //     [guns, primary]
-            //     ldarg.1
-            //     call AddPrimaryAndExtraGun
-            //
-
-            var loadPawnInstruction = new CodeInstruction(codes[addIndex])
-            {
-                opcode = OpCodes.Ldarg_1,
-                operand = null
-            };
-
-            codes[addIndex] = loadPawnInstruction;
-
-            codes.Insert(
-                addIndex + 1,
-                new CodeInstruction(
-                    OpCodes.Call,
-                    addReplacementMethod));
-
-            return codes;
-        }
-
-        public static bool ModifyIsOpportunisticReloadActive(bool originalValue, Pawn pawn)
-        {
-            bool offHandIsOpportunisticReloadActive = false;
-            if (pawn.equipment.TryGetOffHandEquipment(out ThingWithComps offHandEquip))
-            {
-                offHandIsOpportunisticReloadActive = offHandEquip.TryGetComp<CompAmmoUser>()?.IsOpportunisticReloadActive ?? false;
-            }
-            return originalValue || offHandIsOpportunisticReloadActive;
-        }
-
-        public static bool ModifyHasMagazine(Pawn pawn)
-        {
-            if (pawn == null)
-                return false;
-
-            CompAmmoUser mainComp = pawn.equipment?.Primary?.TryGetComp<CompAmmoUser>();
-
-            if (mainComp == null)
-                return false;
-
-            bool oneEquipementHasMagazine = mainComp.HasMagazine;
-
-            if (pawn.equipment.TryGetOffHandEquipment(out ThingWithComps offHandEquip))
-            {
-                oneEquipementHasMagazine |= offHandEquip.TryGetComp<CompAmmoUser>()?.HasMagazine ?? false;
-            }
-
-            return oneEquipementHasMagazine;
-        }
-
-        public static void AddPrimaryAndExtraGun(
-           List<ThingWithComps> guns,
-           ThingWithComps primary,
-           Pawn pawn)
-        {
-            // If we're not checking a offHand, check primary again, as we may have altered its check
-            if (!primary.IsOffHand() && CheckIfWeaponShouldBeAdded(pawn, primary))
-            {
-                guns.Add(primary);
-            }
-
-            // now check off hand
-            if (pawn.equipment.TryGetOffHandEquipment(out ThingWithComps offHandEquip))
-            {
-                if (CheckIfWeaponShouldBeAdded(pawn, offHandEquip))
+                // Test for primary
+                if (!CheckCompAmmoUser(primaryComp, pawn))
                 {
-                    guns.Add(offHandEquip);
+                    // set it to null to cancel it
+                    primaryComp = null;
+                }
+
+                // Test of offHand
+                if (!CheckCompAmmoUser(offHandComp, pawn))
+                {
+                    // set it to null to cancel it
+                    offHandComp = null;
                 }
             }
+
+            // Add guns to the next potential jobs
+            if (primaryComp != null && primaryComp.HasMagazine)
+            {
+                guns.Add(primaryEquip);
+            }
+
+            if (offHandComp != null && offHandComp.HasMagazine)
+            {
+                guns.Add(offHandEquip);
+            }
         }
 
-        private static bool CheckIfWeaponShouldBeAdded(Pawn pawn, ThingWithComps equip)
+        // Return true if the comp can be added, else return false
+        // This is more or less a little part of the CE code
+        public static bool CheckCompAmmoUser(CompAmmoUser cmp, Pawn pawn)
         {
-            if (equip != null)
+            if (cmp == null)
             {
-                CompAmmoUser comp = equip.TryGetComp<CompAmmoUser>();
-                if (comp != null)
-                {
-                    if (!comp.IsOpportunisticReloadActive)
-                    {
-                        return false;
-                    }
-
-                    if (Find.TickManager.TicksGame - pawn.LastAttackTargetTick < comp.MinimalTicksAfterFight)
-                    {
-                        return false;
-                    }
-
-                    if (!comp.HasMagazine)
-                    {
-                        return false;
-                    }
-
-                    var enemiesAround = pawn.Map.mapPawns.AllPawnsSpawned.Where(x => x.Position.InHorDistOf(pawn.Position, comp.SafeDistanceToReload) && !x.IsPsychologicallyInvisible() && x.HostileTo(pawn));
-                    if (enemiesAround.Any())
-                    {
-                        return false;
-                    }
-
-                    return true;
-                }
+                return false;
             }
-            return false;
+            if (!cmp.IsOpportunisticReloadActive)
+            {
+                return false;
+            }
+            if (Find.TickManager.TicksGame - pawn.LastAttackTargetTick < cmp.MinimalTicksAfterFight)
+            {
+                return false;
+            }
+            var enemiesAround = pawn.Map.mapPawns.AllPawnsSpawned.Where(x => x.Position.InHorDistOf(pawn.Position, cmp.SafeDistanceToReload) && !x.IsPsychologicallyInvisible() && x.HostileTo(pawn));
+            if (enemiesAround.Any())
+            {
+                return false;
+            }
+            return true;
         }
     }
 }

@@ -9,6 +9,7 @@ namespace DualWield.CECompat.Harmony
     [HarmonyPatch(typeof(CompPawnGizmo), nameof(CompPawnGizmo.CompGetGizmosExtra))]
     public static class CompPawnGizmo_CompGetGizmosExtra
     {
+        // Add Gizmo to the result if needed
         public static void Postfix(
             bool ___duplicate,
             ThingWithComps ___parent,
@@ -16,19 +17,15 @@ namespace DualWield.CECompat.Harmony
             ref IEnumerable<Gizmo> __result
         )
         {
+            // add offHand gizmo if needed
             if (!___duplicate)
             {
                 var pawn = ___parent as Pawn;
-                var equip = pawn != null
-                         ? pawn.equipment
-                         : null;
-                var primary = equip?.Primary;
-
-                if (equip != null && equip.TryGetOffHandEquipment(out ThingWithComps offHandEquip))
+                if (pawn?.equipment != null && pawn.equipment.TryGetOffHandEquipment(out ThingWithComps offHandEquip))
                 {
                     if ((offHandEquip != null) && (!offHandEquip.AllComps.NullOrEmpty()))
                     {
-                        __result = GetGizmosWithOffhand(__result, offHandEquip.AllComps, primary);
+                        __result = GetGizmosWithOffhand(__result, offHandEquip.AllComps, pawn.equipment.Primary);
                     }
                 }
             }

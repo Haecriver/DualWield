@@ -53,60 +53,21 @@ namespace DualWield.CECompat.Harmony
     [HarmonyPatch(typeof(CompAmmoUser), nameof(CompAmmoUser.TryStartReload))]
     public static class CompAmmoUser_TryStartReload
     {
-        // Try to intercept the  (Wielder.jobs.curJob?.def ?? null) != CE_JobDefOf.ReloadWeapon condition only when needed
-        // (which means when the weapon is in __weaponToByPass) 
-        static IEnumerable<CodeInstruction> Transpiler(
-                  IEnumerable<CodeInstruction> instructions)
+        static void Postfix(CompAmmoUser __instance, int ____lastReloadJobTick) // damned field is named _lastReloadJobTick 😵
         {
-            var matcher = new CodeMatcher(instructions);
-
-            FieldInfo reloadWeaponField =
-                AccessTools.Field(
-                    typeof(CE_JobDefOf),
-                    nameof(CE_JobDefOf.ReloadWeapon)
-                );
-
-            MethodInfo getReloadDefMethod =
-                AccessTools.Method(
-                    typeof(CompAmmoUser_TryStartReload),
-                    nameof(GetReloadDefForComparison)
-                );
-
-            matcher
-                .MatchStartForward(
-                    new CodeMatch(OpCodes.Ldsfld, reloadWeaponField)
-                )
-                .ThrowIfInvalid(
-                    "Cannot find CE_JobDefOf.ReloadWeapon in CompAmmoUser.TryStartReload"
-                );
-
-            // Preserve any label attached to the original instruction.
-            matcher.Set(OpCodes.Ldarg_0, null);
-            matcher.Advance(1);
-
-            matcher.Insert(
-                new CodeInstruction(
-                    OpCodes.Call,
-                    getReloadDefMethod
-                )
-            );
-
-            return matcher.InstructionEnumeration();
-        }
-
-        private static JobDef GetReloadDefForComparison(CompAmmoUser comp)
-        {
-            if (CompAmmoUser_PatchUtils.DoByPassWeapon(comp.parent))
+            // This weapon needs to be reload anyway
+            if (__instance.IsEquippedGun && ____lastReloadJobTick != GenTicks.TicksGame && CompAmmoUser_PatchUtils.DoByPassWeapon(__instance.parent))
             {
                 // Here we know we need to queue a reload job for this comp
-                Job reloadJob = comp.TryMakeReloadJob();
-                if (reloadJob != null)
+                Job reloadJob = __instance.TryMakeReloadJob();
+                if (reloadJob == null)
                 {
-                    reloadJob.playerForced = true;
-                    comp.Wielder.jobs.StartJob(reloadJob, JobCondition.Succeeded, null, true);
+                    return;
                 }
+                ____lastReloadJobTick = GenTicks.TicksGame;
+                reloadJob.playerForced = true;
+                __instance.Wielder.jobs.StartJob(reloadJob, JobCondition.Succeeded, null, true);
             }
-            return CE_JobDefOf.ReloadWeapon;
         }
     }
 }
