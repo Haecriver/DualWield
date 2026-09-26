@@ -1,5 +1,4 @@
 ﻿using HarmonyLib;
-using RimWorld.BaseGen;
 using Verse;
 
 namespace DualWield.CECompat.Harmony
