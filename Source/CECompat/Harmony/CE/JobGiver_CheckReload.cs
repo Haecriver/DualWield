@@ -40,8 +40,6 @@ namespace DualWield.CECompat.Harmony
             IEnumerable<CodeInstruction> instructions,
                 MethodBase __originalMethod)
         {
-
-
             // match the guns local
             var matcherGuns = new CodeMatcher(instructions);
             matcherGuns
@@ -113,7 +111,7 @@ namespace DualWield.CECompat.Harmony
             CompAmmoUser offHandComp = null;
 
             // Check if there are two weapons
-            if (!(primaryEquip?.IsOffHand() ?? false) && pawn.equipment.TryGetOffHandEquipment(out offHandEquip))
+            if (primaryEquip != null && !primaryEquip.IsOffHand() && pawn.equipment.TryGetOffHandEquipment(out offHandEquip))
             {
                 offHandComp = offHandEquip?.TryGetComp<CompAmmoUser>();
             }

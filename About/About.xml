@@ -27,4 +27,7 @@
 		<li>roolo.runandgun</li>
 		<li>roolo.runandgun.kotobike</li>
 	</incompatibleWith>
+	<loadAfter>
+		<li>CETeam.CombatExtended</li>
+	</loadAfter>
 </ModMetaData>

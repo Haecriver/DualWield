@@ -9,10 +9,9 @@ namespace DualWield.CECompat.Harmony
     {
         public static void Postfix(Pawn pawn)
         {
-            // no shield with off hand weapons
-            if (pawn.equipment.TryGetOffHandEquipment(out ThingWithComps offHandEquip))
+            if (pawn.apparel != null && pawn.equipment != null)
             {
-                if (pawn.apparel != null)
+                if (pawn.equipment.TryGetOffHandEquipment(out ThingWithComps offHandEquip))
                 {
                     var list = pawn.apparel.WornApparel;
                     // Reverse loop to prevent removal issues
