@@ -3,13 +3,31 @@ using CombatExtended.AI;
 using HarmonyLib;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Reflection.Emit;
 using Verse;
 using Verse.AI;
 
 namespace DualWield.CECompat.Harmony
 {
-    // Look for any call for pawn.equipment.Primary in JobDriver_Reload
+    // I Looked for any call for pawn.equipment.Primary in JobDriver_Reload
+    public static class JobDriver_Reload_Utils 
+    {
+        public static ThingWithComps getWeapon(this JobDriver_Reload instance) =>
+            AccessTools
+                .Property(typeof(JobDriver_Reload), "weapon")
+                .GetValue(instance) as ThingWithComps;
+
+        public static CompAmmoUser getCompReloader(this JobDriver_Reload instance) =>
+            AccessTools
+                .Property(typeof(JobDriver_Reload), "compReloader")
+                .GetValue(instance) as CompAmmoUser;
+
+        public static bool? getReloadingEquipment(this JobDriver_Reload instance) =>
+            AccessTools
+                .Field(typeof(JobDriver_Reload), "reloadingEquipment")
+                .GetValue(instance) as bool?;
+    }
 
     // This Getter is comparing weapon to pawn.equipement.Primary
     // We add an OR condition that also check if weapon is offHand equipment
@@ -18,11 +36,8 @@ namespace DualWield.CECompat.Harmony
     {
         public static void Postfix(JobDriver_Reload __instance, ref bool __result)
         {
-            var pawn = AccessTools.Field(typeof(JobDriver_Reload), "pawn")
-                .GetValue(__instance) as Pawn;
-
-            var weapon = AccessTools.Property(typeof(JobDriver_Reload), "weapon")
-                .GetValue(__instance) as ThingWithComps;
+            var weapon = __instance.getWeapon();
+            var pawn = __instance.pawn;
 
             __result |= 
                 // has offhand
@@ -55,9 +70,7 @@ namespace DualWield.CECompat.Harmony
                 return;
             }
 
-            var compReloader = AccessTools.Property(typeof(JobDriver_Reload), "compReloader")
-                .GetValue(__instance) as CompAmmoUser;
-
+            var compReloader = __instance.getCompReloader();
             if (compReloader == null || !compReloader.HasAndUsesAmmoOrMagazine)
             {
                 // the job needs to stop anyway
@@ -65,8 +78,7 @@ namespace DualWield.CECompat.Harmony
             }
 
             var pawn = __instance.pawn;
-            var weapon = AccessTools.Property(typeof(JobDriver_Reload), "weapon")
-                .GetValue(__instance) as ThingWithComps;
+            var weapon = __instance.getWeapon();
 
             // There was no need for primary, is the is no need for offHand, the job can stop
             __result &=
@@ -88,25 +100,24 @@ namespace DualWield.CECompat.Harmony
     [HarmonyPatch(typeof(JobDriver_Reload), nameof(JobDriver_Reload.MakeNewToils), MethodType.Enumerator)]
     public static class JobDriver_Reload_MakeNewToils_Patch
     {
+        static MethodInfo changeInitEquipmentMethod = AccessTools.Method(
+            typeof(JobDriver_Reload_MakeNewToils_Patch),
+            nameof(ChangeInitEquipment));
+
+        static FieldInfo initEquipmentField = AccessTools.Field(
+            typeof(JobDriver_Reload),
+            "initEquipment");
+
         public static IEnumerable<CodeInstruction> Transpiler(
             ILGenerator il,
             IEnumerable<CodeInstruction> instructions)
         {
-            var initEquipment = AccessTools.Field(
-                typeof(JobDriver_Reload),
-                "initEquipment");
-
-            var changeValue = AccessTools.Method(
-                typeof(JobDriver_Reload_MakeNewToils_Patch),
-                nameof(ChangeInitEquipment));
-
             var localDriver = il.DeclareLocal(typeof(JobDriver_Reload));
             var localValue = il.DeclareLocal(typeof(ThingWithComps));
 
             var matcher = new CodeMatcher(instructions, il);
-
             matcher.MatchStartForward(
-                new CodeMatch(OpCodes.Stfld, initEquipment)
+                new CodeMatch(OpCodes.Stfld, initEquipmentField)
             );
 
             if (matcher.IsInvalid)
@@ -127,7 +138,7 @@ namespace DualWield.CECompat.Harmony
                 new CodeInstruction(OpCodes.Ldloc, localValue),
 
                 // (JobDriver_Reload, ThingWithComps) -> ThingWithComps
-                new CodeInstruction(OpCodes.Call, changeValue)
+                new CodeInstruction(OpCodes.Call, changeInitEquipmentMethod)
             );
 
             return matcher.Instructions();
@@ -137,8 +148,8 @@ namespace DualWield.CECompat.Harmony
             JobDriver_Reload instance,
             ThingWithComps original)
         {
-            var reloadingEquipment = AccessTools.Field(typeof(JobDriver_Reload), "reloadingEquipment").GetValue(instance) as bool?;
-            var weapon = AccessTools.Property(typeof(JobDriver_Reload), "weapon").GetValue(instance) as ThingWithComps;
+            var reloadingEquipment = instance.getReloadingEquipment();
+            var weapon = instance.getWeapon();
 
             // Return original if
             // - not reloading equipement

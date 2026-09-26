@@ -8,7 +8,7 @@ namespace DualWield.Harmony.CE
     [HarmonyPatch(typeof(Verb_LaunchProjectileCE), nameof(Verb_LaunchProjectileCE.SwayAmplitude), MethodType.Getter)]
     public static class Verb_LaunchProjectileCE_SwayAmplitude
     {
-        public static void Postfix(Verb_LaunchProjectileCE __instance, float __result)
+        public static void Postfix(Verb_LaunchProjectileCE __instance, ref float __result)
         {
             Thing equipment = __instance.EquipmentSource;
             if (!(equipment is { ParentHolder: Pawn_EquipmentTracker peqt })) return;
@@ -28,7 +28,7 @@ namespace DualWield.Harmony.CE
             var dynamicPenalty = (DualWield.Settings.DynamicAccP / 100f) * (20 - skillLevel);
 
             // Sway factor are better when closer to 0
-            // So we augment it
+            // So we augment it instead of reducing it
             __result *= 1.0f + staticPenalty + dynamicPenalty;
         }
     }

@@ -14,7 +14,7 @@ namespace DualWield.CECompat.Harmony
     [HarmonyPatch(typeof(ITab_Inventory), nameof(ITab_Inventory.DrawThingRowCE))]
     public static class ITab_Inventory_DrawThingRowCE
     {
-        private static readonly MethodInfo BeforeWornApparelMethod =
+        private static readonly MethodInfo addOffHandButtonMethod =
             AccessTools.Method(
                 typeof(ITab_Inventory_DrawThingRowCE),
                 nameof(AddOffHandButton));
@@ -73,7 +73,7 @@ namespace DualWield.CECompat.Harmony
                     CodeInstruction.LoadArgument(0),
                     new CodeInstruction(OpCodes.Ldloc, floatOptionListLocal),
                     CodeInstruction.LoadArgument(thingParameterIndex),
-                    new CodeInstruction(OpCodes.Call, BeforeWornApparelMethod)
+                    new CodeInstruction(OpCodes.Call, addOffHandButtonMethod)
                 };
 
             // get_WornApparel is the target of a conditional branch.

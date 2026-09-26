@@ -7,13 +7,29 @@ using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using Verse;
-using static Unity.Burst.Intrinsics.X86.Avx;
 
 namespace DualWield.CECompat.Harmony
 {
     [HarmonyPatch(typeof(JobGiver_CheckReload), "DoReloadCheck")]
     public static class JobGiver_CheckReload_DoReloadCheck
     {
+        private static FieldInfo equipmentField = AccessTools.Field(
+            typeof(Pawn),
+            nameof(Pawn.equipment));
+
+        private static MethodInfo primaryProp = AccessTools.PropertyGetter(
+            typeof(Pawn_EquipmentTracker),
+            nameof(Pawn_EquipmentTracker.Primary));
+
+        private static MethodInfo addThingWithCompsMethod = AccessTools.Method(
+            typeof(List<ThingWithComps>),
+            nameof(List<ThingWithComps>.Add));
+
+        private static ConstructorInfo listThingWithCompsConstructor = AccessTools.Constructor(
+            typeof(List<ThingWithComps>),
+            Type.EmptyTypes
+        );
+
         // replace the first checks on tmpComp + the guns.Add(pawn.equipment.Primary);
         // Start at tmpComp = pawn.equipment?.Primary?.TryGetComp<CompAmmoUser>();
         // ends after the if (tmpComp != null && tmpComp.HasMagazine) statement
@@ -24,33 +40,16 @@ namespace DualWield.CECompat.Harmony
             IEnumerable<CodeInstruction> instructions,
                 MethodBase __originalMethod)
         {
-            var getEquipment = AccessTools.Field(
-                typeof(Pawn),
-                nameof(Pawn.equipment));
 
-            var getPrimary = AccessTools.PropertyGetter(
-                typeof(Pawn_EquipmentTracker),
-                nameof(Pawn_EquipmentTracker.Primary));
-
-            var add = AccessTools.Method(
-                typeof(List<ThingWithComps>),
-                nameof(List<ThingWithComps>.Add));
-
-            var listCtor = AccessTools.Constructor(
-                typeof(List<ThingWithComps>),
-                Type.EmptyTypes
-            );     
 
             // match the guns local
             var matcherGuns = new CodeMatcher(instructions);
             matcherGuns
                 .Start()
-                .MatchStartForward(
-                    new CodeMatch(OpCodes.Newobj, listCtor)
-                )
+                .MatchStartForward(new CodeMatch(OpCodes.Newobj, listThingWithCompsConstructor))
                 .Advance(1);
-            var gunsStore = matcherGuns.Instruction;
 
+            var gunsStore = matcherGuns.Instruction;
             if (!gunsStore.IsStloc())
             {
                 throw new InvalidOperationException("Cannot find guns local");
@@ -61,7 +60,7 @@ namespace DualWield.CECompat.Harmony
 
             matcher
                 .MatchStartForward(
-                    CodeMatch.LoadsField(getEquipment))
+                    CodeMatch.LoadsField(equipmentField))
                 .ThrowIfInvalid("Reload block start not found");
 
             // The pawn field is not a simple CodeMatch.IsLdarg(1);
@@ -77,9 +76,9 @@ namespace DualWield.CECompat.Harmony
                 .MatchEndForward(
                     CodeMatch.LoadsLocal(), // guns
                     CodeMatch.LoadsField(pawnField), // pawn
-                    CodeMatch.LoadsField(getEquipment),
-                    CodeMatch.Calls(getPrimary),
-                    CodeMatch.Calls(add))
+                    CodeMatch.LoadsField(equipmentField),
+                    CodeMatch.Calls(primaryProp),
+                    CodeMatch.Calls(addThingWithCompsMethod))
                 .ThrowIfInvalid("Reload block end not found");
 
             int end = matcher.Pos;

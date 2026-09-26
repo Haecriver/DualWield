@@ -1,9 +1,7 @@
 ﻿using CombatExtended;
 using DualWield.CECompat.Gizmos;
 using HarmonyLib;
-using System;
 using System.Collections.Generic;
-using UnityEngine;
 using Verse;
 
 namespace DualWield.CECompat.Harmony
@@ -11,6 +9,13 @@ namespace DualWield.CECompat.Harmony
     [HarmonyPatch(typeof(CompPawnGizmo), nameof(CompPawnGizmo.CompGetGizmosExtra))]
     public static class CompPawnGizmo_CompGetGizmosExtra
     {
+        private static bool IsGizmoAmmoStatus(this Gizmo gizmo, out GizmoAmmoStatus gizmoAmmoStatus) => (gizmoAmmoStatus = gizmo as GizmoAmmoStatus) != null;
+        private static bool IsCommandReload(this Gizmo gizmo, out Command_Reload command_Reload) => (command_Reload = gizmo as Command_Reload) != null;
+        private static bool IsFireModeToggle(this Gizmo gizmo, out Command_Action caFireModeToogle) => (caFireModeToogle = gizmo as Command_Action) != null
+            && caFireModeToogle.defaultDesc == "CE_ToggleFireModeDesc".Translate();
+        private static bool IsAimModeToggle(this Gizmo gizmo, out Command_Action caAimModeToogle) => (caAimModeToogle = gizmo as Command_Action) != null
+            && caAimModeToogle.defaultDesc == "CE_ToggleAimModeDesc".Translate();
+
         // Add Gizmo to the result if needed
         public static void Postfix(
             bool ___duplicate,
@@ -96,11 +101,5 @@ namespace DualWield.CECompat.Harmony
                 }
             }
         }
-        private static bool IsGizmoAmmoStatus(this Gizmo gizmo, out GizmoAmmoStatus gizmoAmmoStatus) => (gizmoAmmoStatus = gizmo as GizmoAmmoStatus) != null;
-        private static bool IsCommandReload(this Gizmo gizmo, out Command_Reload command_Reload) => (command_Reload = gizmo as Command_Reload) != null;
-        private static bool IsFireModeToggle(this Gizmo gizmo, out Command_Action caFireModeToogle) => (caFireModeToogle = gizmo as Command_Action) != null 
-            && caFireModeToogle.defaultDesc == "CE_ToggleFireModeDesc".Translate();
-        private static bool IsAimModeToggle(this Gizmo gizmo, out Command_Action caAimModeToogle) => (caAimModeToogle = gizmo as Command_Action) != null
-            && caAimModeToogle.defaultDesc == "CE_ToggleAimModeDesc".Translate();
     }
 }
