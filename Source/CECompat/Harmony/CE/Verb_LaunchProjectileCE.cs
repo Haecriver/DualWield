@@ -5,7 +5,7 @@ using Verse;
 
 namespace DualWield.Harmony.CE
 {
-    [HarmonyPatch(typeof(Verb_LaunchProjectileCE), nameof(Verb_LaunchProjectileCE.SightsEfficiency), MethodType.Getter)]
+    [HarmonyPatch(typeof(Verb_LaunchProjectileCE), nameof(Verb_LaunchProjectileCE.SwayAmplitude), MethodType.Getter)]
     public static class Verb_LaunchProjectileCE_SwayAmplitude
     {
         public static void Postfix(Verb_LaunchProjectileCE __instance, float __result)

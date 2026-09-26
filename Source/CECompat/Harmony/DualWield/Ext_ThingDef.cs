@@ -7,7 +7,7 @@ namespace DualWield.CECompat.Harmony
     [HarmonyPatch(typeof(Ext_ThingDef), nameof(Ext_ThingDef.CanBeOffHand))]
     public static class Ext_ThingDef_CanBeOffHand
     {
-        public static bool Prefix(ThingDef td, bool __result)
+        public static bool Prefix(ThingDef td, ref bool __result)
         {
             if (!DualWield.Settings.UseCombatExentedConfig)
             {
@@ -21,7 +21,7 @@ namespace DualWield.CECompat.Harmony
     [HarmonyPatch(typeof(Ext_ThingDef), nameof(Ext_ThingDef.IsTwoHand))]
     public static class Ext_ThingDef_IsTwoHand
     {
-        public static bool Prefix(ThingDef td, bool __result)
+        public static bool Prefix(ThingDef td, ref bool __result)
         {
             if (!DualWield.Settings.UseCombatExentedConfig)
             {
