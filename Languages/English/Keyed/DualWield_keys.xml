@@ -45,6 +45,8 @@
 	<DW_Setting_MeleeMirrored_Description>If this is checked, dual wielded melee weapons will be drawn mirrored in regards to each other.</DW_Setting_MeleeMirrored_Description>	
 	<DW_Setting_RangedMirrored_Title>Ranged weapons mirrored</DW_Setting_RangedMirrored_Title>
 	<DW_Setting_RangedMirrored_Description>If this is checked, dual wielded ranged weapons will be drawn mirrored in regards to each other.</DW_Setting_RangedMirrored_Description>
+	<DW_Setting_UseCombatExentedConfig_Title>Use CE Compat</DW_Setting_UseCombatExentedConfig_Title>
+	<DW_Setting_UseCombatExentedConfig_Description>If this is checked, the one-handed weapons configuration from CE will be used instead of the DW one.</DW_Setting_UseCombatExentedConfig_Description>
 	
 	<DW_Setting_CustomRotations_Title>Click a weapon to set its custom rotation.</DW_Setting_CustomRotations_Title>
 	<DW_Setting_CustomRotations_Header>Custom rotations</DW_Setting_CustomRotations_Header>

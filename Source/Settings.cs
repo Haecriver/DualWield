@@ -36,6 +36,7 @@ namespace DualWield
 
         public bool MeleeMirrored = true;
         public bool RangedMirrored = true;
+        public bool useCombatExentedConfig = true;
 
         public float NpcDualWieldChance = 40f;
 
@@ -57,6 +58,9 @@ namespace DualWield
         private string _dynamicCooldownPBuffer;
         private string _dynamicAccPBuffer;
         private string _npcDualWieldChanceBuffer;
+
+        public bool IsCEPresent => LoadedModManager.RunningModsListForReading.Any(m => m.PackageIdPlayerFacing == "CETeam.CombatExtended");
+        public bool UseCombatExentedConfig => IsCEPresent && useCombatExentedConfig;
 
         private List<ThingDef> _allWeapons = new List<ThingDef>();
 
@@ -96,6 +100,8 @@ namespace DualWield
         private static string _settingMeleeMirroredDescription;
         private static string _settingRangedMirroredTitle;
         private static string _settingRangedMirroredDescription;
+        private static string _settingUseCombatExentedConfigTitle;
+        private static string _settingUseCombatExentedConfigDescription;
         private static string _settingStaticCooldownPenOffHandTitle;
         private static string _settingStaticCooldownPenOffHandDescription;
         private static string _settingStaticCooldownPMainHandTitle;
@@ -142,6 +148,8 @@ namespace DualWield
             _settingMeleeMirroredDescription = "DW_Setting_MeleeMirrored_Description".Translate();
             _settingRangedMirroredTitle = "DW_Setting_RangedMirrored_Title".Translate();
             _settingRangedMirroredDescription = "DW_Setting_RangedMirrored_Description".Translate();
+            _settingUseCombatExentedConfigTitle = "DW_Setting_UseCombatExentedConfig_Title".Translate();
+            _settingUseCombatExentedConfigDescription = "DW_Setting_UseCombatExentedConfig_Description".Translate();
             _settingStaticCooldownPenOffHandTitle = "DW_Setting_StaticCooldownPenOffHand_Title".Translate();
             _settingStaticCooldownPenOffHandDescription = "DW_Setting_StaticCooldownPenOffHand_Description".Translate();
             _settingStaticCooldownPMainHandTitle = "DW_Setting_StaticCooldownPMainHand_Title".Translate();
@@ -239,9 +247,17 @@ namespace DualWield
                 leftHeight += Text.LineHeight;
                 leftHeight += left.verticalSpacing;
 
-                left.CheckboxLabeled(_settingRangedMirroredTitle, ref RangedMirrored, _settingRangedMirroredDescription, labelPct:0.6f, height: Text.LineHeight);
+                left.CheckboxLabeled(_settingRangedMirroredTitle, ref RangedMirrored, _settingRangedMirroredDescription, labelPct: 0.6f, height: Text.LineHeight);
                 leftHeight += Text.LineHeight;
                 leftHeight += left.verticalSpacing;
+
+                // only display this option when CE is present
+                if (IsCEPresent)
+                {
+                    left.CheckboxLabeled(_settingUseCombatExentedConfigTitle, ref useCombatExentedConfig, _settingUseCombatExentedConfigDescription, labelPct: 0.6f, height: Text.LineHeight);
+                    leftHeight += Text.LineHeight;
+                    leftHeight += left.verticalSpacing;
+                }
 
                 var rotationRect = left.GetRect(Math.Max(0, scrollRect.height + _scroll.y - leftHeight));
                 var actualHeight = GUIDrawUtility.CustomDrawer_MatchingThingDefs_dialog(
