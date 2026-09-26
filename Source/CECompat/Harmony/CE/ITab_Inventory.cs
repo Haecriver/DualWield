@@ -147,6 +147,11 @@ namespace DualWield.CECompat.Harmony
             {
                 equipOption = new FloatMenuOption("CannotEquip".Translate(thing.LabelShort) + " " + "DW_AsOffHand".Translate() + " (" + "DW_CannotBeOffHand".Translate() + ")", null);
             }
+            // new rules : if there is a shield, we can't equip off hand
+            else if (CE_Utility.HasShield(SelPawnForGear))
+            {
+                equipOption = new FloatMenuOption("CannotEquip".Translate(thing.LabelShort) + " " + "DW_AsOffHand".Translate() + " (" + "DW_OffHandWithShield".Translate() + ")", null);
+            }
             else
             {
                 string equipOptionLabel = "DW_EquipOffHand".Translate(eqLabel);
@@ -182,7 +187,6 @@ namespace DualWield.CECompat.Harmony
             // Put away remove all weapon
             if (!p.equipment.Primary.IsOffHand() &&  p.equipment.TryGetOffHandEquipment(out ThingWithComps offHandEquip))
             {
-                //p.equipment.MakeRoomForOffHand(offHandEquip);
                 p.equipment.TryTransferEquipmentToContainer(offHandEquip, p.inventory.innerContainer);
             }
         }

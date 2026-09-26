@@ -7,10 +7,10 @@ using Verse.AI;
 
 namespace DualWield.CECompat.Harmony
 {
-    [HarmonyPatch(typeof(JobGiver_ConfigurableHostilityResponse), "TryGetAttackNearbyEnemyJob")]
-    internal class Harmony_JobGiver_ConfigurableHostilityResponse
+    [HarmonyPatch(typeof(RimWorld.JobGiver_ConfigurableHostilityResponse), "TryGetAttackNearbyEnemyJob")]
+    public class JobGiver_ConfigurableHostilityResponse
     {
-        internal static void Postfix(Pawn pawn, ref Job __result)
+        public static void Postfix(Pawn pawn, ref Job __result)
         {
             if (__result != null && __result.def == JobDefOf.AttackStatic)
             {

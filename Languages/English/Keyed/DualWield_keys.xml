@@ -64,5 +64,6 @@
 	<DW_WieldingTwoHanded>Wielding two-handed weapon</DW_WieldingTwoHanded>
 	<DW_NoTwoHandedInOffHand>Cannot wear two-handed weapon as off-hand</DW_NoTwoHandedInOffHand>
 	<DW_CannotBeOffHand>Not configured as secondary weapon in mod options</DW_CannotBeOffHand>
+	<DW_OffHandWithShield>Cannot wear an off-hand weapon with a shield</DW_OffHandWithShield>
 	
 </LanguageData>
