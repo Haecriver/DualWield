@@ -2,11 +2,11 @@
 
 namespace DualWield.CECompat.Gizmos
 {
-    public class GizmoAmmoStatusOffsethand : GizmoAmmoStatus
+    public class GizmoAmmoStatusOffhand : GizmoAmmoStatus
     {
         public override string Title => "(2) " + base.Title;
 
-        public GizmoAmmoStatusOffsethand(GizmoAmmoStatus gizmoAmmoStatus): base()
+        public GizmoAmmoStatusOffhand(GizmoAmmoStatus gizmoAmmoStatus): base()
         {
             compAmmo = gizmoAmmoStatus.compAmmo;
         }
